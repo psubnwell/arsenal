@@ -3,11 +3,12 @@ import re
 import json
 import langid
 import opencc
+import pandas as pd
 
 CHINESE_CONVERT_CONFIG = 'zht2zhs.ini'
 
 def chinese_convert(foo, config=CHINESE_CONVERT_CONFIG):
-    if type(foo) == 'str':  # Foo is a string.    
+    if type(foo) == 'str':  # Foo is a string.
         return opencc.convert(foo, config=config)
     else:  # Foo is other data structure, such as list, tuple.
         tmp = json.dumps(foo, ensure_ascii=False)
@@ -86,6 +87,7 @@ def read_wiki(file_path):
 
 
 if __name__ == '__main__':
+    pd.read_sql_table('langlinks', open('./zhwiki-20170501-langlinks.sql', errors='ignore'))
     # The wiki file is not pure UTF-8, so it's better to ignore the error.
     langlinks_zh = open('./zhwiki-20170501-langlinks.sql', errors='ignore').read()
     index_zh = open('./zhwiki-20170501-pages-articles-multistream-index.txt', 

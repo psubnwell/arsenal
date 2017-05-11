@@ -84,6 +84,24 @@ def read_wiki(file_path):
     return f
 
 
+def sql2csv(sql_file):
+    from io import StringIO
+    import re
+
+
+    fcsv = StringIO()
+    with open(sql_file, 'r', errors='ignore') as fsql:
+        for line in fsql:
+            if line.startswith('INSERT'):
+                line = line.strip()
+                line = line.lstrip(re.match(r'INSERT.+ \(', line).group())
+                line = line.rstrip(');')
+                line = line.replace('),(', '\n')
+                fcsv.write(line)
+    
+
+
+
 
 
 if __name__ == '__main__':

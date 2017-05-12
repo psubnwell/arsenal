@@ -88,8 +88,8 @@ def sql2csv(sql_file):
     from io import StringIO
     import re
 
-
     fcsv = StringIO()
+    with open()
     with open(sql_file, 'r', errors='ignore') as fsql:
         for line in fsql:
             if line.startswith('INSERT'):
@@ -98,10 +98,64 @@ def sql2csv(sql_file):
                 line = line.rstrip(');')
                 line = line.replace('),(', '\n')
                 fcsv.write(line)
+    return fcsv
+
+def get_table_name(sql_file):
+    with open(sql_file, 'r', errors='ignore') as fsql:
+        for line in fsql:
+            if not line.startswith(''):
+                
+def get_query_create_table(sql_file):
+    from io import StringIO
+
+    fnew = StringIO
+    with open(sql_file, 'r', errors='ignore') as fsql:
+        for line in fsql:
+            if not line.startswith('INSERT'):
+                fnew.write(line)
+    fnew.seek(0)
     
+    with open(fnew)
 
 
 
+# Convert .sql(SQL dump file) to .csv via MySQL.
+# You need have MySQL installed in your system.
+def sql2csv(sql_file, host, user, password, database):
+    import mysql.connector
+    import pandas as pd
+
+    cnx = mysql.connector.connect(host=host,
+                                  user=user,
+                                  password=password,
+                                  database=database)
+    cur = cnx.cursor()
+    cur_gen = cur.execute(open(sql_file, 'r', errors='ignore').read(), multi=True)
+    # TODO: process line by line.
+    try:
+        for c in cur_gen:
+            print('cursor:', c)
+    except BrokenPipeError as e:
+        print('BrokenPipeError!')
+    cnx.commit()
+
+    cur.execute('SHOW TABLES')
+    table_name = cur.fetchall()[0]
+
+    if len(table_name) == 1:
+        csv_file = sql_file.rstrip('.sql') + '.csv'
+        df = pd.read_sql('SELECT * FROM {}'.format(table_name[0]), cnx)
+        df.to_csv(csv_file)
+        cur.execute('DROP TABLES {}'.format(table_name[0]))
+    else:
+        for table in table_name:
+            csv_file = sql_file.rstrip('.sql') + '_' + table + '.csv'
+            df = pd.read_sql('SELECT * FROM {}'.format(table), cnx)
+            df.to_csv(csv_file)
+            cur.execute('DROP TABLES {}'.format(table))
+
+    cur.close()
+    cnx.close()
 
 
 if __name__ == '__main__':

@@ -145,7 +145,6 @@ def pami_txt2csv(pages_articles_multistream_index_txt_file):
 
 
 def multilingual_lexicon(lang_list):
-    # TODO
     pass
 
 

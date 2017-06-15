@@ -136,16 +136,60 @@ def pami_txt2csv(pages_articles_multistream_index_txt_file):
     Out[1]:
     (The `zhwiki-20170501-pages-articles-multistream-index.csv` has been saved under ~/Downloads.)
     """
+    import csv
+
     pami_txt_file = os.path.expanduser(pages_articles_multistream_index_txt_file)
-    output_buffer = ''
-    for line in open(pami_txt_file, errors='ignore').readlines():
-        output_buffer += line.replace(':', ',', 2)  # Only replace first two colons.
-    with open(pami_txt_file.replace('.txt', '.csv'), 'w') as fout:
-        fout.write(output_buffer.strip())
+    with open(pami_txt_file, 'r', errors='ignore') as fin, open(pami_txt_file.replace('.txt', '.csv'), 'w') as fout:
+        writer = csv.writer(fout)
+        for line in fin:
+            row = line.strip().split(':', 2)  # Need remove '\n' in the tail.
+            writer.writerow(row)
 
 
-def multilingual_lexicon(lang_list):
-    pass
+def recogize_primary_lang(wikimedia_file):
+    import re
+
+    return re.findall(r'.*\/(.*)wiki', wikimedia_file)
+
+def complete_langlinks(pages_articles_multistream_index_csv_file, langlinks_csv_file, primary_lang='auto_recogized'):
+    langlinks_csv_file = os.path.expanduser(langlinks_csv_file)
+    pami_csv_file = os.path.expanduser(pages_articles_multistream_index_csv_file)
+
+    if primary_lang == 'auto_recogized':
+        primary_lang = recogize_primary_lang(pami_csv_file)[0]
+
+    langlinks_df = pd.read_csv(langlinks_csv_file, header=None, names=['id', 'lang', 'entry'])
+    pami_df = pd.read_csv(pami_csv_file, header=None, names=['unknow', 'id', 'entry'])
+    pami_df['lang'] = primary_lang
+    langlinks_complete_df = langlinks_df.append(pami_df[['id','lang','entry']], ignore_index=True)
+    langlinks_complete_df.to_csv(langlinks_csv_file.replace('.csv','_complete.csv'))
+
+
+def multilingual_lexicon(lang_list, langlinks_complete_csv_file, how='inner'):
+    import pandas as pd
+
+    langlinks_complete_csv_file = os.path.expanduser(langlinks_complete_csv_file)
+
+    langlinks_complete_df = pd.read_csv(langlinks_complete_csv_file)
+
+    multilingual_lexicon_df = langlinks_complete_df[langlinks_complete_df['lang'] == lang_list[0]]
+
+    for lang in lang_list[1:]:
+        lang_df_tmp = langlinks_complete_df[langlinks_complete_df['lang'] == lang]
+        multilingual_lexicon_df = multilingual_lexicon_df.merge(lang_df_tmp, left_on='id', right_on='id', how=how)
+
+    col = ['id']
+    for c in multilingual_lexicon_df.columns:
+        if c.startswith('entry'):
+            col.append(c)
+
+    multilingual_lexicon_df = multilingual_lexicon_df[col]
+    multilingual_lexicon_df.columns = ['id'] + lang_list
+
+
+    output_dir = os.path.dirname(langlinks_complete_csv_file)
+    output_file = output_dir + '/multilingual_lexicon_{}'.format('_'.join(lang_list)) + '.csv'
+    multilingual_lexicon_df.to_csv(output_file)
 
 
 # Convert .sql(SQL dump file) to .csv via MySQL.
@@ -204,4 +248,7 @@ if __name__ == '__main__':
 
     # sql2csv('~/HDD/Datasets/Wikipedia/zhwiki/zhwiki-20170501-redirect.sql')
     # convert_chinese('./test.txt')
-    pami_txt2csv('~/HDD/Datasets/Wikipedia/zhwiki/zhwiki-20170501-pages-articles-multistream-index.txt')
+    # pami_txt2csv('~/HDD/Datasets/Wikipedia/zhwiki/zhwiki-20170501-pages-articles-multistream-index.txt')
+    # multilingual_lexicon('zh', '~/HDD/Datasets/Wikipedia/zhwiki/zhwiki-20170501-pages-articles-multistream-index.csv', ['en'], '~/HDD/Datasets/Wikipedia/zhwiki/zhwiki-20170501-langlinks.csv')
+    # complete_langlinks('~/HDD/Datasets/Wikipedia/zhwiki/zhwiki-20170501-pages-articles-multistream-index.csv', '~/HDD/Datasets/Wikipedia/zhwiki/zhwiki-20170501-langlinks.csv')
+    multilingual_lexicon(['zh','ja','ko'], '~/HDD/Datasets/Wikipedia/zhwiki/zhwiki-20170501-langlinks_complete.csv')

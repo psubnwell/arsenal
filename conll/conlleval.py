@@ -2,7 +2,9 @@ import os
 import subprocess
 import re
 
-def format_nested(word, groundtruth, prediction, delimiter=' '):
+from arsenal.conll import conlltool
+
+def format_nested(token, word, start, end, groundtruth, prediction, delimiter='\t'):
     """Format the output data to fit the requirement of the conlleval.pl.
 
     Args:
@@ -15,11 +17,11 @@ def format_nested(word, groundtruth, prediction, delimiter=' '):
         the formatted str block of output data. Unnested blocks are seperated with a blank line.
     """
     out = ''
-    for sw, sg, sp in zip(word, groundtruth, prediction):
-        out += format(sw, sg, sp, delimiter) + '\n'
+    for st, sw, ss, se, sg, sp in zip(token, word, start, end, groundtruth, prediction):
+        out += format(st, sw, ss, se, sg, sp, delimiter) + '\n'
     return out
 
-def format(word, groundtruth, prediction, delimiter=' '):
+def format(token, word, start, end, groundtruth, prediction, delimiter='\t'):
     """Format the output data to fit the requirement of the conlleval.pl.
 
     Args:
@@ -32,11 +34,11 @@ def format(word, groundtruth, prediction, delimiter=' '):
         the formatted str block of output data.
     """
     out = ''
-    for w, g, p in zip(word, groundtruth, prediction):
-        out += delimiter.join((w, g, p)) + '\n'
+    for t, w, s, e, g, p in zip(token, word, start, end, groundtruth, prediction):
+        out += delimiter.join((t, w, s, e, g, p)) + '\n'
     return out
 
-def exec(conlleval_pl, input_file):
+def execute(conlleval_pl, input_file):
     """Execute the perl script conlleval.pl.
 
     Args:
@@ -46,9 +48,9 @@ def exec(conlleval_pl, input_file):
     Returns:
         A dict of precision, recall and f1_score.
     """
-    proc = subprocess.Popen(['perl', conlleval_pl], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(['perl', conlleval_pl, '-d', '\t'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     # proc.communicate() requires bytes-like object, not str.
-    stdout, _ = proc.communicate(open(input_file, 'rb').read())  
+    stdout, _ = proc.communicate(open(input_file, 'rb').read())
 
     return parse(stdout.decode())
 
@@ -68,7 +70,7 @@ def parse(conlleval_stdout):
             f = float(re.findall(r'FB1:\s*(\d+\.\d+)', line)[0])
     return {'p':p, 'r':r, 'f1':f}
 
-def eval(word, groundtruth, prediction, output_file):
+def evaluate(nested_seq, column_name, output_file):
     """Evaluate the performance on the dataset.
 
     Args:
@@ -81,5 +83,10 @@ def eval(word, groundtruth, prediction, output_file):
         A dict of precision, recall and f1_score.
     """
     with open(output_file, 'w') as fout:
-        fout.write(format_nested(word, groundtruth, prediction))
-    return exec('./conlleval.pl', output_file)
+        # fout.write(format_nested(token, word, start, end, groundtruth, prediction))
+        fout.write(conlltool.nested_seq2conll(nested_seq, column_name))
+    # __file__ is the path of this .py file.
+    # But __file__ sometimes return abs path and sometimes related path.
+    # So use os.path.realpath() to get the abs path.
+    conlleval_pl = os.path.dirname(os.path.realpath(__file__)) + '/conlleval.pl'
+    return execute(conlleval_pl, output_file)

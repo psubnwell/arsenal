@@ -3,21 +3,40 @@ import io
 import re
 import itertools
 import operator
+from collections import namedtuple
 
 import pandas as pd
 
 import nltk
 import jieba
 import jieba.posseg
-from snownlp import SnowNLP
 
 from arsenal.basic import basictool
 from arsenal.linedoc import linedoctool
-from collections import namedtuple
 
 
-def inline2standoff(annotated_text, regex_pattern, parenthesis_index):
-    res = re.finditer(regex_pattern, annotated_text)
+def inline2standoff(inline_annotated_text, regex_pattern, parenthesis_index):
+    """Extract annotations from a inline-annotated text, with their `start`
+    and `end` locations in its raw text.
+
+    Args:
+        inline_annotated_text: <str> A text contains inline annotation.
+        regex_pattern: <raw str> A regular expression to match the inline
+                       annotations in the `inline_annotated_text`.
+        parenthesis_index: <dict> A dict contains 3 keys: `record`, `text`
+                           and `label`, whose values are their parenthesis
+                           locations in the `regex_pattern`.
+
+    Returns:
+        A complete list of standoff annotations <list of dict> in the
+    `inline_annotated_text`, with `record`, `text`, `label`, `start` and `end` keys.
+
+    (This method is a little bit hard to understand, better to refer to the
+    example in the doc.)
+    """
+    res = re.finditer(regex_pattern, inline_annotated_text)
+    # The extracted spans (`start` and `end` values) are respect to the
+    # `inline_annotated_text`, waiting to be corrected.
     standoff_annotation_temp = [{
         'record':r.group(parenthesis_index['record'] + 1),
         'text':r.group(parenthesis_index['text'] + 1),
@@ -25,6 +44,7 @@ def inline2standoff(annotated_text, regex_pattern, parenthesis_index):
         'start':r.start(),
         'end':r.end()
     } for r in res]
+    # Get the true spans w.r.t the raw text.
     standoff_annotation = []
     for i, a in enumerate(standoff_annotation_temp):
         if i == 0:
@@ -48,22 +68,47 @@ def inline2standoff(annotated_text, regex_pattern, parenthesis_index):
             })
     return standoff_annotation
 
-def inline2raw(annotated_text, annotation):
-    raw_text = annotated_text
+def inline2raw(inline_annotated_text, annotation):
+    """Convert a inline-annotated text to its raw text form, according to the
+    given annotations.
+
+    Args:
+        inline_annotated_text: <str> A text contains inline annotation.
+        annotation: <list of dict> A list of annotations, each of which should
+                    have at least `record` and `text` items.
+
+    Returns:
+        The raw text without inline annotations.
+    """
+    raw_text = inline_annotated_text
     for a in annotation:
         raw_text = raw_text.replace(a['record'], a['text'])
     return raw_text
 
 def standoff2inline(raw_text, standoff_annotation):
+    """Convert the raw text to the inline-annotated text according to the given
+    standoff annotations.
+
+    Args:
+        raw_text: <str>
+        standoff_annotation: <list of dict> A list of standoff annotations
+    contains `reocrd`, `text`, `label`, `start` and `end` items.
+
+    Returns:
+        The inline-annotated text.
+    """
+    # Get the indexes to split the `raw_text`.
     start_index = [a['start'] for a in standoff_annotation]
     end_index = [a['end'] for a in standoff_annotation]
     split_index = list(set(start_index + end_index))
     split_index.sort()
+    # Cut the `raw_text` into many sub strings according to the `split_index`.
     substr = basictool.split_with_indexes(raw_text, split_index)
+    # Substitute some strings with a complete `record` of annotations.
     for a in standoff_annotation:
         substr[split_index.index(a['start']) + 1] = a['record']
-    inline_annotated_text = ''.join(substr)
-    return inline_annotated_text
+    inline_inline_annotated_text = ''.join(substr)
+    return inline_inline_annotated_text
 
 def raw2basicseq(raw_text, language_code, core_num=1):
     if language_code == 'zh':
@@ -142,10 +187,10 @@ def wordseq2tokenseq(word_seq, pos_seq, replace_pos):
             token_seq[i] = '[{}]'.format(pos)
     return {'token': token_seq}
 
-def inline2seq(annotated_text, regex_pattern, parenthesis_index,
+def inline2seq(inline_annotated_text, regex_pattern, parenthesis_index,
                language_code, tag_format, core_num=1):
-    standoff_annotation = inline2standoff(annotated_text, regex_pattern, parenthesis_index)
-    raw_text = inline2raw(annotated_text, standoff_annotation)
+    standoff_annotation = inline2standoff(inline_annotated_text, regex_pattern, parenthesis_index)
+    raw_text = inline2raw(inline_annotated_text, standoff_annotation)
     basic_seq = raw2basicseq(raw_text, language_code, core_num)
     tag_seq = standoff2tagseq(basic_seq['word'], basic_seq['start'],
                               standoff_annotation, tag_format)
@@ -230,14 +275,14 @@ def analyze_keyword(annotation, stopword, filter_flag):
 
 
 if __name__ == '__main__':
-    annotated_text_zh = """被告人邱某以“掐死你”的语言[nameCN=抢劫罪,value=威胁罗某，捂住易某的嘴巴，抢得金项链]就跑，因而构成抢劫罪。"""
+    inline_annotated_text_zh = """被告人邱某以“掐死你”的语言[nameCN=抢劫罪,value=威胁罗某，捂住易某的嘴巴，抢得金项链]就跑，因而构成抢劫罪。"""
     regex_pattern = r'(\[nameCN=(.+?),value=(.+?)\])'
     parenthesis_index = {'record':0, 'text':2, 'label':1}
-    # standoff_annotation = inline2standoff(annotated_text_zh, regex_pattern, parenthesis_index)
-    # raw_text = inline2raw(annotated_text_zh, standoff_annotation)
+    # standoff_annotation = inline2standoff(inline_annotated_text_zh, regex_pattern, parenthesis_index)
+    # raw_text = inline2raw(inline_annotated_text_zh, standoff_annotation)
     # basic_seq = raw2basicseq(raw_text, 'zh')
     # tag_seq = standoff2tagseq(basic_seq['word'], basic_seq['start'], standoff_annotation, 'IO')
-    seq = inline2seq(annotated_text_zh, regex_pattern, parenthesis_index, language_code='zh', tag_format='IO', core_num=4)
+    seq = inline2seq(inline_annotated_text_zh, regex_pattern, parenthesis_index, language_code='zh', tag_format='IO', core_num=4)
     token_seq = wordseq2tokenseq(seq['word'], seq['pos'],
                                  replace_pos=['nr', 'ns', 'm', 'eng'])
     conll_text = seq2conll({**token_seq, **seq}, column_name=['token', 'word', 'pos', 'start', 'end', 'tag'], sep_punc=basictool.ZH_SEP_PUNC, eos_mark=True)
@@ -256,14 +301,14 @@ if __name__ == '__main__':
 
     print('\n--------------------------------------\n')
 
-    annotated_text_en = """<NE id="i0" type="building">The Massachusetts State House</NE> in <NE id="i1" type="city">Boston, MA</NE> houses the offices of many important state figures, including <NE id="i2" type="title">Governor</NE> <NE id="i3" type="person">Deval Patrick</NE> and those of the <NE id="i4" type="organization">Massachusetts General Court</NE>."""
+    inline_annotated_text_en = """<NE id="i0" type="building">The Massachusetts State House</NE> in <NE id="i1" type="city">Boston, MA</NE> houses the offices of many important state figures, including <NE id="i2" type="title">Governor</NE> <NE id="i3" type="person">Deval Patrick</NE> and those of the <NE id="i4" type="organization">Massachusetts General Court</NE>."""
     regex_pattern = r'(<..\sid.+?type="(.+?)">(.+?)</..>?)'
     parenthesis_index = {'record':0, 'text':2, 'label':1}
-    # standoff_annotation = inline2standoff(annotated_text_en, regex_pattern, parenthesis_index)
-    # raw_text = inline2raw(annotated_text_en, standoff_annotation)
+    # standoff_annotation = inline2standoff(inline_annotated_text_en, regex_pattern, parenthesis_index)
+    # raw_text = inline2raw(inline_annotated_text_en, standoff_annotation)
     # basic_seq = raw2basicseq(raw_text, 'en')
     # tag_seq = standoff2tagseq(basic_seq['word'], basic_seq['start'], standoff_annotation, 'IO')
-    seq = inline2seq(annotated_text_en, regex_pattern, parenthesis_index, language_code='en', tag_format='IO', core_num=4)
+    seq = inline2seq(inline_annotated_text_en, regex_pattern, parenthesis_index, language_code='en', tag_format='IO', core_num=4)
     token_seq = wordseq2tokenseq(seq['word'], seq['pos'],
                                  replace_pos=['NNP', 'PRP', 'CD', 'NN'])
     conll_text = seq2conll({**token_seq, **seq}, column_name=['token', 'word', 'pos', 'start', 'end', 'tag'], sep_punc=basictool.EN_SEP_PUNC, eos_mark=True)

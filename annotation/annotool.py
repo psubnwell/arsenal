@@ -232,6 +232,16 @@ def conll2seq(conll_text, column_name, column_sep='\t', remove_sep_line=True,
         df = df[:-1]
     return df.to_dict(orient='list')
 
+def inline2conll(inline_annotated_text, regex_pattern, parenthesis_index,
+                 language_code, tag_format, core_num=1,
+                 column_sep='\t', sep_punc=False, eos_mark=False):
+    seq = inline2seq(inline_annotated_text, regex_pattern, parenthesis_index,
+                     language_code, tag_format, core_num)
+    conll_text = seq2conll(seq, ['word', 'pos', 'start', 'end', 'tag'],
+                           column_sep, sep_punc, eos_mark)
+    return conll_text
+
+
 def analyze_keyword(annotation, stopword, filter_flag):
     """[Unverified] Get the keywords and their IDF values and covering percentages.
 

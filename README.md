@@ -23,25 +23,29 @@ $ python3
 >>> from arsenal.annotation import annotool
 ```
 
-## Annotation
+## Package: Annotation
 
 This toolkit is designed to analyze the annotations in the corpus used in the 
-natural language processing (NLP) task. See the examples below to know how to 
-use it for your own tasks.
+natural language processing (NLP) task. 
+
+For a overview of different kinds of annotations and related pros and cons, 
+please refer to the book: *Natural Language Annotation for Machine Learning*.
 
 **Features:**
 
-1) Theoretically most methods are compatible with multiple languages, so they 
-share the same methods (except some language-specific methods e.g. tokenizing, 
-POS tagging.) Chinese and English are originally designed and tested.
+1) Basically, it supplies the methods to convert between different formats: 
+inline annotation, standoff annotation, CoNLL format, etc.
 
-2) Reference book: *Natural Language Annotation for Machine Learning*.
+2) Theoretically, most methods are compatible with multiple languages. 
+So different language can share the same methods 
+(except some language-specific methods e.g. tokenizing, POS tagging.) 
+But Chinese and English are originally supported and tested.
 
 **Examples:**
 
 1) Convert inline-annotated text to conll-formatted text. (English example)
 
-```
+<pre  style="white-space: pre-wrap; word-break: keep-all;">
 In [1]: from arsenal.annotation import annotool
 
 In [2]: inline_annotated_text_en = """<NE id="i0" type="building">The Massachusetts State House</NE> in <NE id="i1" type="city">Boston, MA</NE> houses the offices of many important state figures, including <NE id="i2" type="title">Governor</NE> <NE id="i3" type="person">Deval Patrick</NE> and those of the <NE id="i4" type="organization">Massachusetts General Court</NE>."""
@@ -114,6 +118,6 @@ General	NNP	160	167	I-organization
 Court	NNP	168	173	I-organization
 .	.	173	174	O
 [EOS]	[EOS]	[EOS]	[EOS]	O
-```
+</pre>
 
 2) Convert conll-formatted text to inline-annotated text. (English example)

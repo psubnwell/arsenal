@@ -41,7 +41,7 @@ So different language can share the same methods
 (except some language-specific methods e.g. tokenizing, POS tagging.) 
 But Chinese and English are originally supported and tested.
 
-** Example (TL;DR):**
+**Example (TL;DR):**
 
 ```
 In [1]: from arsenal.annotation import annotool
@@ -95,3 +95,11 @@ Refer to [./annotation/README.md](./annotation/README.md)
 关于中文的转换方法和英文基本一样，两者共享同一套方法。
 
 详见 [./annotation/README.md](./annotation/README.md)
+
+## Sub-package: `conll`
+
+## Sub-package: `batch`
+
+This toolkit is designed for parallel acceleration.
+
+## Sub-package: `wordvec`

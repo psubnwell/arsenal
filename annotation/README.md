@@ -16,7 +16,7 @@ So different language can share the same methods
 (except some language-specific methods e.g. tokenizing, POS tagging.) 
 But Chinese and English are originally supported and tested.
 
-** Example (TL;DR):**
+**Example (TL;DR):**
 
 ```
 In [1]: from arsenal.annotation import annotool
@@ -224,6 +224,7 @@ In [13]: seq = {**basic_seq, **tag_seq}
 
 可以对序列进行个性化处理来适应不同的需要，如人名、地名有时候对任务不重要，
 反而会大大加大词表增加计算量，可以用`wordseq2tokenseq()`方法来滤去人名地名，等。
+这里暂不做演示。
 
 ```
 In [14]: conll_text = annotool.seq2conll(seq, column_name=['word', 'pos', 'start', 'end', 'tag'])

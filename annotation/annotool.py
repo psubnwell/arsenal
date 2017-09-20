@@ -12,7 +12,6 @@ import jieba
 import jieba.posseg
 
 from arsenal.basic import basictool
-from arsenal.linedoc import linedoctool
 
 
 def inline2standoff(inline_annotated_text, regex_pattern, parenthesis_index):
@@ -110,17 +109,17 @@ def standoff2inline(raw_text, standoff_annotation):
     inline_inline_annotated_text = ''.join(substr)
     return inline_inline_annotated_text
 
-def raw2basicseq(raw_text, language_code, core_num=1):
-    if language_code == 'zh':
-        if core_num > 1:
-            jieba.enable_parallel(core_num)
-        pair = list(jieba.posseg.cut(raw_text))
-        word_seq = [p.word for p in pair]
-        pos_seq = [p.flag for p in pair]
-        word_len_seq = [len(w) for w in word_seq]
-        start_seq = [sum(word_len_seq[:i]) for i in range(len(word_seq))]
-        end_seq = list(map(lambda x, y: x + y, start_seq, word_len_seq))
-    elif language_code == 'en':
+def raw2basicseq(raw_text, language_code):
+    """Tokenize the raw text and return 4 basic sequences.
+
+    Args:
+        raw_text: <str>
+        language_code: <str> Supported options: 'en', 'zh'.
+
+    Returns:
+        A dict including 4 basic sequences, `word`, `pos`, `start` and `end`.
+    """
+    if language_code == 'en':
         word_seq = nltk.word_tokenize(raw_text)
         pair = nltk.pos_tag(word_seq)
         pos_seq = [p[1] for p in pair]
@@ -132,12 +131,29 @@ def raw2basicseq(raw_text, language_code, core_num=1):
             start_seq.append(idx)
             end_seq.append(idx + len(w))
             idx = end_seq[-1]
+    elif language_code == 'zh':
+        pair = list(jieba.posseg.cut(raw_text))
+        word_seq = [p.word for p in pair]
+        pos_seq = [p.flag for p in pair]
+        word_len_seq = [len(w) for w in word_seq]
+        start_seq = [sum(word_len_seq[:i]) for i in range(len(word_seq))]
+        end_seq = list(map(lambda x, y: x + y, start_seq, word_len_seq))
     else:
-        pass
-        # Other languages.
+        pass  # Other languages.
     return {'word':word_seq, 'pos':pos_seq, 'start':start_seq, 'end':end_seq}
 
 def basicseq2raw(word_seq, start_seq, end_seq):
+    """Combine the `word` sequence according to indexes in the `start` and
+    `end` sequences.
+
+    Args:
+        word_seq: <list of str>
+        start_seq: <list of int> start indexes of each word.
+        end_seq: <list of int> end indexes of each word.
+
+    Returns:
+        A raw text.
+    """
     num = len(word_seq)
     space_seq = [(start_seq[i + 1] - end_seq[i]) * ' ' for i in range(num - 1)]
     space_seq.append('')
@@ -240,48 +256,6 @@ def inline2conll(inline_annotated_text, regex_pattern, parenthesis_index,
     conll_text = seq2conll(seq, ['word', 'pos', 'start', 'end', 'tag'],
                            column_sep, sep_punc, eos_mark)
     return conll_text
-
-
-def analyze_keyword(annotation, stopword, filter_flag):
-    """[Unverified] Get the keywords and their IDF values and covering percentages.
-
-    Args:
-        annotation: <list of Annotation namedtuples> The more the better.
-        label: <str> The specific label of Annotation namedtuples you want to
-               focus and analyze its keywords.
-
-    Returns:
-        A IDFOutput namedtuple with keys: `keyword`, `idf`, `percent`.
-    Each value is a sorted list.
-    """
-    label = list(set([a['label'] for a in annotation]))
-    filter_flag = ['[{}]'.format(f) for f in filter_flag]
-    stopword += filter_flag
-    theme_dict = {}
-    for l in label:
-        text = [a['text'] for a in annotation if a['label'] == l]
-        text_seg = linedoctool.possegment(text)
-        text_token = [t.split(' ') for t in text_seg]
-        # Calculate the IDF values.
-        s = SnowNLP(text_token)
-        # Remove words like '[x]', sice they are not true words but filtered flags.
-        for sw in stopword:
-            s.idf.pop(sw, None)
-        keyword = list(s.idf.keys())
-        idf = list(s.idf.values())
-        # Sort the `keyword` and `idf` together. Lower IDF means more important.
-        # Notice this is the opposite with the traditional TF-IDF way.
-        idf_sorted, keyword_sorted = zip(*sorted(zip(idf, keyword)))
-        # $ IDF = log_2 (D / D_w) $, where
-        #     D is the number of total documents,
-        #     D_w is the number of documents contain the keyword.
-        # $ coverage = D_w / D = 1 / (2 ^ IDF) $.
-        # The higher the `coverage`, the more important the keywords.
-        coverage_sorted = [1 / 2**idf for idf in idf_sorted]
-        Keyword = namedtuple('Keyword', ['keyword', 'coverage'])
-        theme_dict.update({l: Keyword(keyword_sorted, coverage_sorted)})
-    return theme_dict
-
 
 
 if __name__ == '__main__':

@@ -33,6 +33,24 @@ def load_default_sep_punc(language_code):
         pass  # Other languages.
     return sep_punc
 
+def remove_empty_elements(my_list):
+    """Remove the empty elements in the list.
+    Default empty elements in Python are 0, '', (), {}, None.
+
+    Args:
+        list: <list>
+
+    Returns:
+        A list without empty elements.
+    """
+    def is_not_blank(my_):
+        # `my_string` is not None and not empty or blank.
+        # Notice any non-empty string can be regarded as True.
+        return bool(my_string and my_string.strip())
+    return list(filter(is_not_blank, doc_list))
+
+
+
 def split_with_indexes(my_string, index):
     """Split the string by the given indexes.
 

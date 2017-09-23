@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import multiprocessing
 from itertools import chain
 
 import jieba.posseg
@@ -9,6 +10,49 @@ import pandas as pd
 
 from arsenal.annotation import annotool
 from arsenal.conll import conlleval
+
+def seqlist2batch(seq_list):
+    key = list(seq_list[0].keys())
+    batch = {}
+    for k in key:
+        batch.update({k:[seq[k] for seq in seq_list]})
+    return batch
+
+def batch2seqlist(batch):
+    key = list(batch.keys())
+    batch_len = len(batch[key[0]])
+    seq_list = []
+    for i in range(batch_len):
+        seq = {}
+        for k in key:
+            seq.update({k:batch[k][i]})
+        seq_list.append(seq)
+    return seq_list
+
+def _conll2batch4map(param):
+    return annotool.conll2seq(*param)
+
+def conll2batch(conll_text, column_name, column_sep='\t',
+                core_num=multiprocessing.cpu_count()):
+    param = [[c, column_name, column_sep] for c in conll_text.strip().split('\n\n')]
+    pool = multiprocessing.Pool(core_num)
+    seq_list = pool.map(_conll2batch4map, param)
+    return seqlist2batch(seq_list)
+
+def _batch2conll4map(param):
+    return annotool.seq2conll(*param)
+
+def batch2conll(batch, column_name, column_sep='\t',
+                core_num=multiprocessing.cpu_count()):
+    seq_list = batch2seqlist(batch)
+    param = [[seq, column_name, column_sep] for seq in seq_list]
+    pool = multiprocessing.Pool(core_num)
+    return '\n\n'.join(pool.map(_batch2conll4map, param))
+
+
+
+# --------------------------------------------------------------
+# Old methods.
 
 def get_nested_column(conll_file, column_sep, column_index):
     """Extract the certain column from conll format file.

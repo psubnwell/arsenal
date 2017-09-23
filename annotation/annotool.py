@@ -109,20 +109,26 @@ def standoff2inline(raw_text, standoff_annotation):
     inline_inline_annotated_text = ''.join(substr)
     return inline_inline_annotated_text
 
-def raw2basicseq(raw_text, language_code):
-    """Tokenize the raw text and return 4 basic sequences.
+def raw2basicseq(raw_text, language_code, pos=False):
+    """Tokenize the raw text and return several basic sequences.
 
     Args:
         raw_text: <str>
         language_code: <str> Supported options: 'en', 'zh'.
+        pos: <bool> Generate a POS sequence.
+             (Adding `pos` option is because not only POS is one of the most
+              common thing used in NLP, but also some algorithms do the word
+              segmentation and POS tagging at the same time, like `jieba`
+              tool.)
 
     Returns:
-        A dict including 4 basic sequences, `word`, `pos`, `start` and `end`.
+        A dict including basic sequences, `word`, (`pos`), `start` and `end`.
     """
     if language_code == 'en':
         word_seq = nltk.word_tokenize(raw_text)
-        pair = nltk.pos_tag(word_seq)
-        pos_seq = [p[1] for p in pair]
+        if pos == True:
+            pair = nltk.pos_tag(word_seq)
+            pos_seq = [p[1] for p in pair]
         start_seq = []
         end_seq = []
         idx = 0
@@ -132,15 +138,24 @@ def raw2basicseq(raw_text, language_code):
             end_seq.append(idx + len(w))
             idx = end_seq[-1]
     elif language_code == 'zh':
-        pair = list(jieba.posseg.cut(raw_text))
-        word_seq = [p.word for p in pair]
-        pos_seq = [p.flag for p in pair]
+        if pos == True:
+            pair = list(jieba.posseg.cut(raw_text))
+            word_seq = [p.word for p in pair]
+            pos_seq = [p.flag for p in pair]
+        else:
+            word_seq = list(jieba.cut(raw_text))
         word_len_seq = [len(w) for w in word_seq]
         start_seq = [sum(word_len_seq[:i]) for i in range(len(word_seq))]
         end_seq = list(map(lambda x, y: x + y, start_seq, word_len_seq))
     else:
         pass  # Other languages.
-    return {'word':word_seq, 'pos':pos_seq, 'start':start_seq, 'end':end_seq}
+
+    if pos = True:
+        seq = {'word':word_seq, 'pos':pos_seq, 'start':start_seq, 'end':end_seq}
+    else:
+        seq = {'word':word_seq, 'start':start_seq, 'end':end_seq}
+
+    return seq
 
 def basicseq2raw(word_seq, start_seq, end_seq):
     """Combine the `word` sequence according to indexes in the `start` and
@@ -204,10 +219,10 @@ def wordseq2tokenseq(word_seq, pos_seq, replace_pos):
     return {'token': token_seq}
 
 def inline2seq(inline_annotated_text, regex_pattern, parenthesis_index,
-               language_code, tag_format, core_num=1):
+               language_code, tag_format, pos=False):
     standoff_annotation = inline2standoff(inline_annotated_text, regex_pattern, parenthesis_index)
     raw_text = inline2raw(inline_annotated_text, standoff_annotation)
-    basic_seq = raw2basicseq(raw_text, language_code, core_num)
+    basic_seq = raw2basicseq(raw_text, language_code, pos)
     tag_seq = standoff2tagseq(basic_seq['word'], basic_seq['start'],
                               standoff_annotation, tag_format)
     return {**basic_seq, **tag_seq}
@@ -218,7 +233,32 @@ def seq2inline(word_seq, start_seq, end_seq, tag_seq, tag_format):
                                           end_seq, tag_seq, tag_format='IO')
     return standoff2inline(raw_text, standoff_annotation)
 
-def seq2conll(seq, column_name, column_sep='\t', sep_punc=False, eos_mark=False):
+def seq2conll(seq, column_name, column_sep):
+    df = pd.DataFrame(seq, columns=column_name)
+    buffer = io.StringIO()
+    df.to_csv(buffer, sep=column_sep, header=False, index=False)
+    return buffer.getvalue().strip().replace('\n ', '\n')
+
+def conll2seq(conll_text, column_name, column_sep='\t'):
+    buffer = io.StringIO(conll_text)
+    df = pd.read_csv(buffer, sep=column_sep, header=None, names=column_name)
+    return df.to_dict(orient='list')
+
+def inline2conll(inline_annotated_text, regex_pattern, parenthesis_index,
+                 language_code, tag_format, column_name,
+                 pos=False, column_sep='\t'):
+    seq = inline2seq(inline_annotated_text, regex_pattern, parenthesis_index,
+                     language_code, tag_format, pos)
+    conll_text = seq2conll(seq, column_name, column_sep)
+    return conll_text
+
+def conll2inline(conll_text, column_name, tag_format, column_sep='\t'):
+    seq = conll2seq(conll_text, column_name, column_sep)
+    return seq2inline(seq['word'], seq['start'], seq['end'], seq['tag'], tag_format)
+
+# -----------------------
+# Deprecated
+def seq2conll_deprecated(seq, column_name, column_sep='\t', sep_punc=False, eos_mark=False):
     df = pd.DataFrame(seq, columns=column_name)
     if eos_mark == True:
         seq_len = df.shape[0]
@@ -238,7 +278,7 @@ def seq2conll(seq, column_name, column_sep='\t', sep_punc=False, eos_mark=False)
         conll_text = '\n'.join(line).replace('\n\n\n', '\n\n')
     return conll_text
 
-def conll2seq(conll_text, column_name, column_sep='\t', remove_sep_line=True,
+def conll2seq_deprecated(conll_text, column_name, column_sep='\t', remove_sep_line=True,
               remove_eos_mark=True):
     if remove_sep_line == True:
         conll_text.replace('\n\n', '\n')
@@ -248,14 +288,6 @@ def conll2seq(conll_text, column_name, column_sep='\t', remove_sep_line=True,
         df = df[:-1]
     return df.to_dict(orient='list')
 
-def inline2conll(inline_annotated_text, regex_pattern, parenthesis_index,
-                 language_code, tag_format, core_num=1,
-                 column_sep='\t', sep_punc=False, eos_mark=False):
-    seq = inline2seq(inline_annotated_text, regex_pattern, parenthesis_index,
-                     language_code, tag_format, core_num)
-    conll_text = seq2conll(seq, ['word', 'pos', 'start', 'end', 'tag'],
-                           column_sep, sep_punc, eos_mark)
-    return conll_text
 
 
 if __name__ == '__main__':

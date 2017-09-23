@@ -10,12 +10,8 @@ from arsenal.annotation import annotool
 def _tokenize(text, language_code):
     """Tokenize a text. You can add more language supports.
     """
-    if language_code == 'en':
-        word_seq = nltk.word_tokenize(text)
-    elif language_code == 'zh':
-        word_seq = list(jieba.cut(text))
-    else:
-        pass  # Implement other language here.
+    seq = annotool.raw2basicseq(text, language_code, pos=False)
+    word_seq = seq['word']
     return word_seq
 
 def _tokenize4map(param):
@@ -43,7 +39,7 @@ def _tokenize_replace_pos(text, language_code, replace_pos):
     """[Do NOT modify this method.] If you want add supports to more languages,
     please refer to `arsenal.annotation.annotool.raw2basicseq()`.
     """
-    seq = annotool.raw2basicseq(text, language_code)
+    seq = annotool.raw2basicseq(text, language_code, pos=True)
     word_seq = seq['word']
     pos_seq = seq['pos']
     for i, pos in enumerate(pos_seq):

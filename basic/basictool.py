@@ -1,4 +1,5 @@
 import os
+from itertools import chain
 import nltk
 
 CURR_FILE_PATH = os.path.realpath(__file__)
@@ -33,22 +34,70 @@ def load_default_sep_punc(language_code):
         pass  # Other languages.
     return sep_punc
 
-def remove_empty_elements(my_list):
-    """Remove the empty elements in the list.
-    Default empty elements in Python are 0, '', (), {}, None.
+def filter_blank_string(string_list):
+    """Filter the blank strings in the list.
 
     Args:
-        list: <list>
+        string_list: <list of str>
 
     Returns:
-        A list without empty elements.
+        A list without blank strings.
     """
-    def is_not_blank(my_):
-        # `my_string` is not None and not empty or blank.
-        # Notice any non-empty string can be regarded as True.
+    def is_not_blank(my_string):
+        # Notice any non-empty string can be regarded as True in Python.
         return bool(my_string and my_string.strip())
-    return list(filter(is_not_blank, doc_list))
+    return list(filter(is_not_blank, string_list))
 
+def flatten_nested_list(nested_list):
+    """Flatten (Unnest) a nested list.
+
+    Args:
+        nested_list: e.g. [[1,3],[2,4]]
+
+    Returns:
+        A flatten (unnested) list.
+    """
+    return list(chain.from_iterable(nested_list))
+
+def generate_index_dict(my_list, start_index=1):
+    """Generate a dict which encodes each item in the list.
+
+    Args:
+        my_list:
+        start_index: The first index number to use.
+
+    Returns:
+        A dict with pairs of items and their indexes.
+    """
+    my_list = list(set(my_list))
+    index_dict = {}
+    for index, item in enumerate(my_list):
+        index_dict[item] = index + start_index
+    return index_dict
+
+def allocate_list(my_list, index_dict):
+    """Map the corresponding index for a item list.
+
+    Args:
+        item_list:
+        index_dict: A dict with pairs of items and their indexes.
+
+    Returns:
+        A index list.
+    """
+    return [index_dict[item] for item in my_list]
+
+def allocate_nested_list(my_nested_list, index_dict):
+    """Map the corresponding index for a nested item list.
+
+    Args:
+        my_nested_list:
+        index_list: A dict with pairs of items and their indexes.
+
+    Returns:
+        A nested index list.
+    """
+    return [allocate_list(sub_list, index_dict) for sub_list in my_nested_list]
 
 
 def split_with_indexes(my_string, index):

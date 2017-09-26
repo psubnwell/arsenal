@@ -1,6 +1,8 @@
 import os
+import random
 from itertools import chain
 import nltk
+from keras.preprocessing.sequence import pad_sequences
 
 CURR_FILE_PATH = os.path.realpath(__file__)
 CURR_DIR_PATH = os.path.dirname(CURR_FILE_PATH)
@@ -59,7 +61,7 @@ def flatten_nested_list(nested_list):
     """
     return list(chain.from_iterable(nested_list))
 
-def generate_index_dict(my_list, start_index=1):
+def generate_index_dict(my_list, start_index=1, unknown={'<UNK>':0}):
     """Generate a dict which encodes each item in the list.
 
     Args:
@@ -73,9 +75,13 @@ def generate_index_dict(my_list, start_index=1):
     index_dict = {}
     for index, item in enumerate(my_list):
         index_dict[item] = index + start_index
+    if (unknown != False) and (unknown != None):
+        index_dict = {**unknown, ** index_dict}
+    elif (unknown == False) or (unknown == None):
+        pass
     return index_dict
 
-def allocate_list(my_list, index_dict):
+def element2index(my_list, index_dict):
     """Map the corresponding index for a item list.
 
     Args:
@@ -85,19 +91,35 @@ def allocate_list(my_list, index_dict):
     Returns:
         A index list.
     """
-    return [index_dict[item] for item in my_list]
+    index_list = []
+    for item in my_list:
+        try:
+            index_list.append(index_dict[item])
+        except KeyError:
+            index_list.append(index_dict['<UNK>'])
+    return index_list
 
-def allocate_nested_list(my_nested_list, index_dict):
-    """Map the corresponding index for a nested item list.
+def padding_sequence_batch_generator(x, y, batch_size, shuffle=False):
+    # Shuffle.
+    if shuffle == True:
+        z = list(zip(x,y))
+        random.shuffle(z)
+        x, y = zip(*z)
+    # Add data to make the number of sequences integral multiple of batch size.
+    makeup_num = batch_size - len(x) % batch_size
 
-    Args:
-        my_nested_list:
-        index_list: A dict with pairs of items and their indexes.
+    x += [[0]] * makeup_num
+    y += [[0]] * makeup_num
+    # Generate the padding batch.
+    for i in range(seq_num // batch_size + 1):
+        x_batch = x[i * batch_size:(i + 1) * batch_size]
+        y_batch = y[i * batch_size:(i + 1) * batch_size]
+        len_batch = [len(s) for s in x_batch]  # Why should use np.array?
 
-    Returns:
-        A nested index list.
-    """
-    return [allocate_list(sub_list, index_dict) for sub_list in my_nested_list]
+        x_batch = pad_sequences(x_batch, padding='post')
+        y_batch = pad_sequences(y_batch, padding='post')
+
+        yield x_batch, y_batch, len_batch
 
 
 def split_with_indexes(my_string, index):

@@ -1,9 +1,11 @@
 import os
+import sys
 import io
 import re
 import itertools
 import operator
 from collections import namedtuple
+import contextlib
 
 import pandas as pd
 
@@ -138,6 +140,7 @@ def raw2basicseq(raw_text, language_code, pos=False):
             end_seq.append(idx + len(w))
             idx = end_seq[-1]
     elif language_code == 'zh':
+        jieba.setLogLevel(20)
         if pos == True:
             pair = list(jieba.posseg.cut(raw_text))
             word_seq = [p.word for p in pair]
@@ -150,7 +153,7 @@ def raw2basicseq(raw_text, language_code, pos=False):
     else:
         pass  # Other languages.
 
-    if pos = True:
+    if pos == True:
         seq = {'word':word_seq, 'pos':pos_seq, 'start':start_seq, 'end':end_seq}
     else:
         seq = {'word':word_seq, 'start':start_seq, 'end':end_seq}

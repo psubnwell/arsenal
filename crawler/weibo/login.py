@@ -230,6 +230,6 @@ class WeiboLogin(object):
 if __name__ == '__main__':
     username = '17817815233'
     password = 'asd123654'
-    cookie_path = "./cookies"  # 保存cookie 的文件名称
+    cookie_path = "output/cookies"  # 保存cookie 的文件名称
     weibo = WeiboLogin(username, password, cookie_path)
     weibo.login()

@@ -2,10 +2,8 @@ import random
 
 import redis
 
-import config
-
 class RedisClient(object):
-    def __init__(self, type, website, host=config.REDIS_HOST, port=config.REDIS_PORT, password=config.REDIS_PASSWORD):
+    def __init__(self, type, website, host, port, password):
         """初始化Redis连接
         :param type: 存储数据类型（accounts、cookies等）
         :param website: 站点名称

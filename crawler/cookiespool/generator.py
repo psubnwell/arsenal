@@ -1,7 +1,9 @@
 import json
+import logging
 
-import config
 from cookiespool.db import RedisClient
+
+
 
 class CookiesGenerator(object):
     def __init__(self, website):

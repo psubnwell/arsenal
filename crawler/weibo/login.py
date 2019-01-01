@@ -33,7 +33,7 @@ class WeiboLogin(object):
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.167 Safari/537.36'
         })
         self.cookie_path = cookie_path
-        self.session.cookies = http.cookiejar.LWPCookieJar(filename=self.cookie_path)
+        # self.session.cookies = http.cookiejar.LWPCookieJar(filename=self.cookie_path)
 
         # index_url = 'http://weibo.com/login.php'
         # self.session.get(index_url, headers=headers, timeout=2)
@@ -225,11 +225,17 @@ class WeiboLogin(object):
         self.login_m_weibo_cn()
 
         # 保存 Cookies
-        self.session.cookies.save()
+        # self.session.cookies.save()
+        with open(self.cookie_path, 'w') as f:
+            f.write(json.dumps(self.session.cookies.get_dict()))
 
 if __name__ == '__main__':
-    username = '17817815233'
-    password = 'asd123654'
+    accountspool = [
+        '17818408945----lftnyt0320',
+        '17817815233----asd123654',
+    ]
+    account = accountspool[0]
+    username, password = account.split('----')
     cookie_path = "output/cookies"  # 保存cookie 的文件名称
     weibo = WeiboLogin(username, password, cookie_path)
     weibo.login()

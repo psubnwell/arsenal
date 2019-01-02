@@ -5,26 +5,6 @@ This module stores all configuration variables.
 This module is used under Chinese environment so comments are in Chinese only.
 """
 
-import tenacity
-import logging
-
-logger = logging.getLogger(__name__)
-
-# 设置重试参数
-RETRY_PARAMS = {
-    # 当抛出异常、或者结果为None时重试
-    'retry': (tenacity.retry_if_exception_type() |
-              tenacity.retry_if_result(lambda result: result in [None, [], False])),
-    # 最多重试3次
-    'stop': tenacity.stop_after_attempt(3),
-    # 每次重试间隔在0-2s
-    'wait': tenacity.wait_random(min=0, max=2),
-    # 每次重试之前打印异常日志
-    'before_sleep': tenacity.before_sleep_log(logger, logging.DEBUG),
-    # 如果最后一次重试仍不成功, 默认返回None
-    'retry_error_callback': lambda retry_state: None,
-}
-
 # 设置微博关键字段
 STATUS_KEYS = [
     'status_id',  # 微博的ID (id = idstr = mid)
@@ -44,7 +24,7 @@ USER_KEYS = [
     'user_id',  # 用户的ID
     'screen_name',  # 用户的显示名称
     'gender',  # 用户性别
-    'location',  # 用户地址
+    # 'location',  # 用户地址 (这一项不是基本信息, 需花额外时间获取)
     'statuses_count',  # 用户发布的微博数
     'follow_count',  # 用户的关注数
     'followers_count',  # 用户的被关注数
@@ -53,4 +33,14 @@ USER_KEYS = [
     'mbtype',  # 会员类型
     'verified',  # 是否认证
     'verified_type',  # 认证类型
+]
+
+# 设置评论关键字段
+COMMENT_KEYS = [
+    'comment_id',  # 评论的ID
+    'comment_bid',  # 评论的base62编码ID
+    'created_at',  # 评论的发布时间
+    'text',  # 评论原文
+    'like_count',  # 评论的点赞数
+    'user',  # 评论的发布者信息 (为嵌套字典)
 ]

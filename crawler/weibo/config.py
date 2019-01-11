@@ -38,7 +38,6 @@ USER_KEYS = [
 # 设置评论关键字段
 COMMENT_KEYS = [
     'comment_id',  # 评论的ID
-    'comment_bid',  # 评论的base62编码ID
     'created_at',  # 评论的发布时间
     'text',  # 评论原文
     'like_count',  # 评论的点赞数

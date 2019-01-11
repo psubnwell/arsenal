@@ -14,14 +14,14 @@ def retry(logger):
         # 最多重试3次
         stop = tenacity.stop_after_attempt(3),
         # 每次重试间隔在0-2s
-        wait = tenacity.wait_random(min=0, max=2),
+        wait = tenacity.wait_random(min=1, max=3),
         # 每次重试之前打印异常日志
         before_sleep = tenacity.before_sleep_log(logger, logging.WARNING),
         # 如果最后一次重试仍不成功, 默认返回None
         retry_error_callback = lambda retry_state: None,
     )
 
-def get_all_pages(get_by_page_func, count, logger, ahead=2, **kw):
+def get_all_pages(get_by_page_func, count, logger, ahead=3, **kw):
     """用于爬取多页数据的函数
 
     Args:

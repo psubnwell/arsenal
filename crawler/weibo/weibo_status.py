@@ -11,6 +11,7 @@ import logging
 
 import requests
 import tenacity
+import fake_useragent
 
 from . import util
 from . import config
@@ -20,8 +21,9 @@ from . import weibo_user
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 设置其他常量
-USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.86 Safari/537.36'
+# 设置用户代理
+ua = fake_useragent.UserAgent()
+
 
 @util.retry(logger=logger)
 def get_info(status_id, cookies=None):
@@ -30,13 +32,14 @@ def get_info(status_id, cookies=None):
     # 构造请求
     headers = {
         'Upgrade-Insecure-Requests': '1',
-        'User-Agent': USER_AGENT,
+        'User-Agent': ua.random,
     }
     url = 'https://m.weibo.cn/detail/{}'.format(status_id)
     response = requests.get(
         url,
         headers=headers,
-        cookies=cookies
+        cookies=cookies,
+        timeout=5,
     )
     if response.status_code != 200:
         return
@@ -68,14 +71,14 @@ def get_info(status_id, cookies=None):
 
 @util.retry(logger=logger)
 def get_reposts_by_page(status_id, page, cookies):
-    """获取微博的转发信息(单页)
+    """获取微博的转发(单页)
     """
     # 构造请求
     headers = {
         'Accept': 'application/json, text/plain, */*',
         'MWeibo-Pwa': '1',
         'Referer': 'https://m.weibo.cn/detail/{}'.format(status_id),
-        'User-Agent': USER_AGENT,
+        'User-Agent': ua.random,
         'X-Requested-With': 'XMLHttpRequest'
     }
     url = 'https://m.weibo.cn/api/statuses/repostTimeline'
@@ -120,30 +123,124 @@ def get_reposts_by_page(status_id, page, cookies):
     return reposts
 
 def get_reposts(status_id, count='all', cookies=None):
-    """获取微博的所有转发信息
+    """获取微博的所有转发
     """
     # 获取基本信息
     info = get_info(status_id, cookies)
     reposts_count = info['reposts_count']
     logger.info('目标微博 %s 共有 %d 条转发', status_id, reposts_count)
+    count = reposts_count if count == 'all' else count
+    logger.info('设定爬取数量 %d 条', count)
     # 逐页获取所有转发信息
     reposts = util.get_all_pages(
         get_by_page_func=get_reposts_by_page,
         status_id=status_id,
         cookies=cookies,
-        count=reposts_count if count == 'all' else count,
+        count=count,
         logger=logger,
     )
     return reposts
 
 @util.retry(logger=logger)
-def get_comments_by_max_id(status_id, max_id=None, cookies=None):
+def get_comments_by_page(status_id, page, cookies=None):
+    """获取微博的评论(单页)
+    """
     # 构造请求
     headers = {
         'Accept': 'application/json, text/plain, */*',
         'MWeibo-Pwa': '1',
         'Referer': 'https://m.weibo.cn/detail/{}'.format(status_id),
-        'User-Agent': USER_AGENT,
+        'User-Agent': ua.random,
+        'X-Requested-With': 'XMLHttpRequest'
+    }
+    url = 'https://m.weibo.cn/api/comments/show'
+    params = {
+        'id': status_id,
+        'page': page,
+    }
+    response = requests.get(
+        url,
+        params=params,
+        headers=headers,
+        cookies=cookies,
+        timeout=5,
+    )
+    if response.status_code != 200:
+        return
+    # 提取数据
+    comments = []
+    for data in response.json()['data']['data']:
+        # 提取评论的信息
+        comment = {}
+        for key in config.COMMENT_KEYS:
+            if key == 'comment_id':
+                comment[key] = int(data.get('id'))
+            elif key == 'like_count':
+                # 存在不同URL返回字段有差异的情况
+                # 本方法用到的URL返回like_counts
+                # 而get_comments_by_max_id()方法中用到的URL返回like_count
+                comment[key] = data.get('like_counts')
+            elif key == 'user':
+                pass
+            else:
+                comment[key] = data.get(key)
+        # 提取评论者的信息
+        user = {}
+        for key in config.USER_KEYS:
+            if key == 'user_id':
+                user[key] = int(data['user'].get('id'))
+            elif key == 'location':
+                user[key] = weibo_user.get_more_info(user['user_id']).get(
+                    'location'
+                )
+            else:
+                user[key] = data['user'].get(key)
+        comment['user'] = user
+        comments.append(comment)
+    return comments
+
+def get_comments(status_id, count='all', cookies=None):
+    """获取微博的所有评论
+
+    Notices:
+        根据经验, 爬取评论时最好将爬虫频率降低一些, 并且多往后看几页.
+    """
+    # 获取基本信息
+    info = get_info(status_id, cookies)
+    comments_count = info['comments_count']
+    logger.info('目标微博 %s 共有 %d 条评论', status_id, comments_count)
+    count = comments_count if count == 'all' else count
+    logger.info('设定爬取数量 %d 条', count)
+    # 逐页获取所有评论信息
+    comments = util.get_all_pages(
+        get_by_page_func=get_comments_by_page,
+        status_id=status_id,
+        cookies=cookies,
+        count=count,
+        logger=logger,
+    )
+    return comments
+
+
+"""
+目前还存在异常的方法
+"""
+
+@util.retry(logger=logger)
+def get_comments_by_max_id(status_id, max_id=None, cookies=None):
+    """获取微博的评论(单页, 基于max_id)
+
+    Warning:
+        本方法目前只能获取单页, 原因未知.
+        已经采用多种方法debug, 如使用真实登录Cookies等, 仍不成功.
+        建议用get_comments_by_page()替代.
+    """
+    # 构造请求
+    headers = {
+        'Accept': 'application/json, text/plain, */*',
+        'MWeibo-Pwa': '1',
+        'Referer': 'https://m.weibo.cn/detail/{}'.format(status_id),
+        'User-Agent': ua.random,
         'X-Requested-With': 'XMLHttpRequest'
     }
     url = 'https://m.weibo.cn/comments/hotflow'
@@ -168,8 +265,8 @@ def get_comments_by_max_id(status_id, max_id=None, cookies=None):
     comments = []
     max_id = response.json()['data']['max_id']
     data = response.json()['data']['data']
-    print(data)
-    print(max_id)
+    # print(data)
+    # print(max_id)
     for item in data:
         comment = {}
         for key in config.COMMENT_KEYS:
@@ -186,15 +283,19 @@ def get_comments_by_max_id(status_id, max_id=None, cookies=None):
             if key == 'user_id':
                 user[key] = int(item['user'].get('id'))
             elif key == 'location':
-                pass
-                # user[key] = weibo_user.get_more_info(user['user_id']).get('location')
+                user[key] = weibo_user.get_more_info(user['user_id']).get('location')
             else:
                 user[key] = item['user'].get(key)
         comment['user'] = user
         comments.append(comment)
     return comments, max_id
 
-def get_comments(status_id, count='all', cookies=None):
+def get_comments_based_on_max_id(status_id, count='all', cookies=None):
+    """获取微博的所有评论(基于max_id)
+
+    Warning:
+        本方法目前只能获取单页, 原因未知, 建议用get_comments_by_page()替代.
+    """
     # 获取基本信息
     info = get_info(status_id, cookies)
     comments_count = info['comments_count']
@@ -231,25 +332,25 @@ def get_comments(status_id, count='all', cookies=None):
     )
     return comments
 
-
-
 if __name__ == '__main__':
     import os
     output_dir = os.path.join(os.path.dirname(__file__), 'output')
 
     with open(os.path.join(output_dir, 'cookies'), 'r') as f:
         cookies = json.loads(f.read())
+    # cookies = None
 
     # status_id = 4272004045840806  # 小测试用例
     status_id = 4324060840216841  # 谢娜
     # status_id = 4301856895288175  # 重庆公交
 
-    reposts = get_reposts(status_id, cookies=cookies)
-    for i in reposts[:5]:
-        print(i)
-    print(len(reposts))
+    print(get_info(status_id))
 
-    # # print(get_info(status_id))
+
+    # reposts = get_reposts(status_id, cookies=cookies)
+    # for i in reposts[:5]:
+    #     print(i)
+    # print(len(reposts))
 
 
     # 测试get_comments_by_max_id
@@ -262,7 +363,8 @@ if __name__ == '__main__':
 
 
     # 测试get_comments
-    # comments = get_comments(status_id, cookies=cookies)
-    # for i in comments[:10]:
-    #     print()
-    #     print(i)
+    comments = get_comments(status_id, count='all', cookies=cookies)
+    with open(os.path.join(output_dir, 'comments.txt'), 'w') as f:
+        for i in comments:
+            f.write(json.dumps(i, ensure_ascii=False))
+            f.write('\n')

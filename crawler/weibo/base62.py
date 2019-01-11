@@ -1,6 +1,10 @@
 """
-Source:
-[ref: mrluanma/base62.py](https://gist.github.com/mrluanma/6000424)
+本模块用于将微博博文的ID和其base62编码的ID进行转换.
+This module can be applied to convert between ID and base62-coded ID of
+Weibo statuses.
+
+Source & Thanks:
+[mrluanma/base62.py](https://gist.github.com/mrluanma/6000424)
 """
 
 import sys
@@ -13,22 +17,19 @@ def rsplit(s, count):
     f = lambda x: x > 0 and x or 0
     return [s[f(i - count):i] for i in range(len(s), 0, -count)]
 
-
-def mid2str(mid):
+def id2bid(mid):
     result = ''
     for i in rsplit(mid, 7):
         str62 = base62_encode(int(i))
         result = str62.zfill(4) + result
     return result.lstrip('0')
 
-
-def str2mid(input):
+def bid2id(input):
     result = ''
     for i in rsplit(input, 4):
         str10 = str(base62_decode(i)).zfill(7)
         result = str10 + result
     return result.lstrip('0')
-
 
 def base62_encode(num, alphabet=ALPHABET):
     """Encode a number in Base X
@@ -46,7 +47,6 @@ def base62_encode(num, alphabet=ALPHABET):
         arr.append(alphabet[rem])
     arr.reverse()
     return ''.join(arr)
-
 
 def base62_decode(string, alphabet=ALPHABET):
     """Decode a Base X encoded string into the number
@@ -66,15 +66,14 @@ def base62_decode(string, alphabet=ALPHABET):
         idx += 1
     return num
 
-
 def test():
-    assert mid2str('231101124784859058') == 'Bh0tgako3U'
-    assert str2mid('Bh0tgako3U') == '231101124784859058'
+    assert id2bid('231101124784859058') == 'Bh0tgako3U'
+    assert bid2id('Bh0tgako3U') == '231101124784859058'
 
-    assert mid2str('3491273850170657') == 'yCirT0Iox'
-    assert str2mid('yCirT0Iox') == '3491273850170657'
+    assert id2bid('3491273850170657') == 'yCirT0Iox'
+    assert bid2id('yCirT0Iox') == '3491273850170657'
 
-    print(str2mid('H67N8hxyN'))
+    print(bid2id('H67N8hxyN'))
 
 
 if __name__ == '__main__':

@@ -11,6 +11,7 @@ from urllib.parse import quote
 
 import requests
 import tenacity
+import fake_useragent
 
 from . import util
 from . import config
@@ -19,8 +20,9 @@ from . import config
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 设置其他常量
-USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.86 Safari/537.36'
+# 设置用户代理
+ua = fake_useragent.UserAgent()
+
 
 @util.retry(logger=logger)
 def get_user_id(screen_name, cookies=None):
@@ -30,7 +32,7 @@ def get_user_id(screen_name, cookies=None):
         'Referer': 'https://m.weibo.cn/search?containerid={}'.format(
             quote('100103type=1&q={}'.format(screen_name))
         ),
-        'User-Agent': USER_AGENT,
+        'User-Agent': ua.random,
         'X-Requested-With': 'XMLHttpRequest',
     }
     url = 'https://m.weibo.cn/api/container/getIndex'
@@ -56,7 +58,7 @@ def get_user_id(screen_name, cookies=None):
     for card in card_group:
         if card['card_type'] == 10 and \
            card['user']['screen_name'] == screen_name:
-            return card['user']['id']
+            return int(card['user']['id'])
 
 @util.retry(logger=logger)
 def get_info(user_id, cookies=None):
@@ -67,7 +69,7 @@ def get_info(user_id, cookies=None):
     """
     headers = {
         'Referer': 'https://m.weibo.cn/u/{}'.format(user_id),
-        'User-Agent': USER_AGENT,
+        'User-Agent': ua.random,
         'X-Requested-With': 'XMLHttpRequest',
     }
     url = 'https://m.weibo.cn/api/container/getIndex'
@@ -111,7 +113,7 @@ def get_more_info(user_id, cookies=None):
         'Accept': 'application/json, text/plain, */*',
         'MWeibo-Pwa': '1',
         'Referer': 'https://m.weibo.cn/p/index?containerid=230283{}_-_INFO'.format(user_id),
-        'User-Agent': USER_AGENT,
+        'User-Agent': ua.random,
         'X-Requested-With': 'XMLHttpRequest',
     }
     url = 'https://m.weibo.cn/api/container/getIndex'
@@ -149,14 +151,11 @@ def get_more_info(user_id, cookies=None):
 @util.retry(logger=logger)
 def get_statuses_by_page(user_id, page, cookies=None):
     """获取用户发布的微博(单页)
-
-    Notes:
-        分析网址:
     """
     # 构造请求
     headers = {
         'Referer': 'https://m.weibo.cn/u/{}'.format(user_id),
-        'User-Agent': USER_AGENT,
+        'User-Agent': ua.random,
         'X-Requested-With': 'XMLHttpRequest',
     }
     url = 'https://m.weibo.cn/api/container/getIndex'
@@ -166,8 +165,6 @@ def get_statuses_by_page(user_id, page, cookies=None):
         'containerid': str(107603) + str(user_id),
         'page': page,
     }
-    if page == 1:
-        params.pop('page')
     response = requests.get(
         url,
         params=params,
@@ -210,12 +207,14 @@ def get_statuses(user_id, count='all', cookies=None):
         '目标用户 %d(@%s) 共有 %d 条微博',
         user_id, screen_name, statuses_count
     )
+    count = statuses_count if count == 'all' else count
+    logger.info('设定爬取数量 %d 条', count)
     # 逐页获取所有转发信息
     statuses = util.get_all_pages(
         get_by_page_func=get_statuses_by_page,
         user_id=user_id,
         cookies=cookies,
-        count=statuses_count if count == 'all' else count,
+        count=count,
         logger=logger,
     )
     return statuses
@@ -248,7 +247,7 @@ def get_followers_by_page(user_id, page, cookies=None):
         'Accept': 'application/json, text/plain, */*',
         'MWeibo-Pwa': '1',
         'Referer': 'https://m.weibo.cn/p/second?containerid=100505{}_-_FANS'.format(user_id),
-        'User-Agent': USER_AGENT,
+        'User-Agent': ua.random,
         'X-Requested-With': 'XMLHttpRequest'
     }
     url = 'https://m.weibo.cn/api/container/getSecond'
@@ -291,12 +290,14 @@ def get_followers(user_id, count='all', cookies=None):
         '目标用户 %d(@%s) 共有 %d 个粉丝',
         user_id, screen_name, followers_count
     )
+    count = followers_count if count == 'all' else count
+    logger.info('设定爬取数量 %d 条', count)
     # 逐页获取所有粉丝
     followers = util.get_all_pages(
         get_by_page_func=get_followers_by_page,
         user_id=user_id,
         cookies=cookies,
-        count=followers_count if count == 'all' else count,
+        count=count,
         logger=logger
     )
     return followers
@@ -304,35 +305,40 @@ def get_followers(user_id, count='all', cookies=None):
 if __name__ == '__main__':
     with open('weibo/output/cookies', 'r') as f:
         cookies = json.loads(f.read())
+    cookies = None
 
     # 测试get_user_id
     # user_id = get_user_id('胡东瑶')
-    user_id = get_user_id('崔庆才丨静觅', cookies)
+    user_id = get_user_id('崔庆才丨静觅', cookies=cookies)
     print(user_id)
+    print('-'*30)
 
     # 测试get_info
-    # info = get_info(user_id, cookies)
-    # print(info)
+    info = get_info(user_id, cookies=cookies)
+    print(info)
+    print('-'*30)
 
     # 测试get_more_info
-    # more_info = get_more_info(user_id, cookies)
-    # print(more_info)
+    more_info = get_more_info(user_id, cookies=cookies)
+    print(more_info)
+    print('-'*30)
 
     # 测试get_statuses_by_page
-    # statuses_by_page = get_statuses_by_page(user_id, 2, cookies)
+    # statuses_by_page = get_statuses_by_page(user_id, 2, cookies=cookies)
     # for i in statuses_by_page:
     #     print()
     #     print(i)
 
     # 测试get_statuses
-    # statuses = get_statuses(user_id, cookies)
-    # print(len(statuses))
-    # for i in statuses[:10]:
-    #     print()
-    #     print(i)
+    statuses = get_statuses(user_id, cookies=cookies, count=30)
+    print(len(statuses))
+    for i in statuses[:10]:
+        print()
+        print(i)
+    print('-'*30)
 
     # 测试get_followers
-    followers = get_followers(user_id, cookies, count=30)
+    followers = get_followers(user_id, cookies=cookies, count=30)
     for i in followers[:10]:
         print()
         print(i)

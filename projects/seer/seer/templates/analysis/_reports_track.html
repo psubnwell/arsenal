@@ -1,0 +1,13 @@
+{% extends 'analysis/base.html' %}
+
+{% block panel_heading %}
+权威报道跟踪
+{% endblock %}
+
+{% block panel_body %}
+<script src="{{ url_for('static', filename='js/reports_track.js') }}">
+</script>
+<script type="text/javascript">
+    plot({{ data|tojson }})
+</script>
+{% endblock %}

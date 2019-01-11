@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>SB Admin 2 - Bootstrap Admin Theme</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="../../static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- MetisMenu CSS -->
+    <link href="../../static/vendor/metisMenu/metisMenu.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="../../static/dist/css/sb-admin-2.css" rel="stylesheet">
+
+    <!-- Morris Charts CSS -->
+    <link href="../../static/vendor/morrisjs/morris.css" rel="stylesheet">
+
+    <!-- Custom Fonts -->
+    <link href="../../static/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- ECharts JavaScript -->
+    <script src="../../static/vendor/echarts/echarts.min.js"></script>
+
+</head>
+
+<body>
+
+    <div id="wrapper">
+
+        <!-- Navigation -->
+        <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="index.html"><b>网络舆情监测系统</b></a>
+            </div>
+            <!-- /.navbar-header -->
+
+            <div class="navbar-default sidebar" role="navigation">
+                <div class="sidebar-nav navbar-collapse">
+                    <ul class="nav" id="side-menu">
+                        <li>
+                            <a href="#"><i class="fa fa-dashboard fa-fw"></i> 舆情传播与跟踪<span class="fa arrow"></span></a>
+                            <ul class="nav nav-second-level show">
+                                <li>
+                                    <a href="#network_visualize">传播网络分析</a>
+                                </li>
+                                <li>
+                                    <a href="#reports_track">权威报道跟踪</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li>
+                            <a href="#"><i class="fa fa-dashboard fa-fw"></i> 舆情分类与综述<span class="fa arrow"></span></a>
+                            <ul class="nav nav-second-level show">
+                                <li>
+                                    <a href="flot.html">网民情绪分析</a>
+                                </li>
+                                <li>
+                                    <a href="morris.html">评论自动摘要</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li>
+                            <a href="#"><i class="fa fa-dashboard fa-fw"></i> 舆情预测与预警<span class="fa arrow"></span></a>
+                            <ul class="nav nav-second-level show">
+                                <li>
+                                    <a href="flot.html">舆情指数预测</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                <!-- /.sidebar-collapse -->
+            </div>
+            <!-- /.navbar-static-side -->
+        </nav>
+
+        <div id="page-wrapper">
+            <div class="row">
+                <div class="col">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading text-center">
+                            基本信息
+                        </div>
+                        <div class="panel-body table-responsive">
+                            <table class="table text-center">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center">事件名称</th>
+                                        <th class="text-center">发生时间</th>
+                                        <th class="text-center">发生地点</th>
+                                        <th class="text-center">主要人物</th>
+                                        <th class="text-center">传播时期</th>
+                                        <th class="text-center">传播趋势</th>
+                                        <th class="text-center">网民情绪</th>
+                                        <th class="text-center">舆情级别</th>
+                                        <th class="text-center">处置建议</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Doe</td>
+                                        <td>Doe</td>
+                                        <td>Doe</td>
+                                        <td>Doe</td>
+                                        <td>Doe</td>
+                                        <td>Doe</td>
+                                        <td>Doe</td>
+                                        <td>Doe</td>
+                                        <td>Doe</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <div id="analysis-info" class="panel panel-danger">
+                        <div id="analysis-method" class="panel-heading text-center">
+                        </div>
+                        <div class="panel-body">
+                            <div id="analysis-content" style="width:100%;height:400px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- /#page-wrapper -->
+    </div>
+    <!-- /#wrapper -->
+
+    <!-- jQuery -->
+    <script src="../../static/vendor/jquery/jquery.min.js"></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="../../static/vendor/bootstrap/js/bootstrap.min.js"></script>
+
+    <!-- Metis Menu Plugin JavaScript -->
+    <script src="../../static/vendor/metisMenu/metisMenu.min.js"></script>
+
+    <!-- Morris Charts JavaScript -->
+    <script src="../../static/vendor/raphael/raphael.min.js"></script>
+    <script src="../../static/vendor/morrisjs/morris.min.js"></script>
+    <!-- <script src="../../static/data/morris-data.js"></script> -->
+
+    <!-- Custom Theme JavaScript -->
+    <script src="../../static/dist/js/sb-admin-2.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script src="../../static/js/script.js"></script>
+    <script src="../../static/js/plot.js"></script>
+
+    <!-- Custom Variables -->
+    <script type="text/javascript">
+     var network_visualize_url = "{{ url_for('analysis.network_visualize') }}";
+     var reports_track_url = "{{ url_for('analysis.reports_track') }}";
+    </script>
+
+</body>
+
+</html>

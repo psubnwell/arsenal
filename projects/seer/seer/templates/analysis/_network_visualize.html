@@ -1,0 +1,13 @@
+{% extends 'analysis/index.html' %}
+
+{% block panel_heading %}
+传播网络分析
+{% endblock %}
+
+{% block panel_body %}
+<script src="{{ url_for('static', filename='js/network_visualize.js') }}">
+</script>
+<script type="text/javascript">
+ plot({{ data|tojson }})
+</script>
+{% endblock %}
